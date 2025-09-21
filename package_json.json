@@ -1,0 +1,48 @@
+{
+  "name": "fashionaire",
+  "version": "1.0.0",
+  "description": "AI-powered fashion styling application",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "npm run build:prod",
+    "build:prod": "NODE_ENV=production webpack --mode=production",
+    "build:dev": "NODE_ENV=development webpack --mode=development",
+    "serve": "http-server . -p 3000",
+    "env:setup": "cp .env.example .env && echo 'Please edit .env file with your API keys'",
+    "lint": "eslint *.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "fashion",
+    "ai",
+    "styling",
+    "google-ai",
+    "image-generation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "http-server": "^14.1.1",
+    "eslint": "^8.50.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/fashionaire.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/fashionaire/issues"
+  },
+  "homepage": "https://github.com/yourusername/fashionaire#readme"
+}
