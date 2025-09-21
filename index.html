@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FashionAIre</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Helvetica+Neue,Helvetica,Arial,sans-serif&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #D4AF37;
+            --bone: #F5F5F0;
+            --white: #FFFFFF;
+            --black: #000000;
+            --deepcharcoal: #1C1C1C;
+            
+            /* Dark Mode (Default) */
+            --bg-primary: var(--black);
+            --bg-secondary: #404959;
+            --text-primary: var(--bone);
+            --text-secondary: var(--bone);
+            --text-subtle: #a0aec0;
+            --border-color: #2d3748;
+            --skeleton-bg: #5f6a79;
+            --input-bg: #2d3748;
+        }
+
+        body.light-mode {
+            /* Light Mode Overrides */
+            --bg-primary: var(--bone); /* Bone White for main background */
+            --bg-secondary: #C5D4D0; /* Luna Light for cards */
+            --text-primary: var(--deepcharcoal);
+            --text-secondary: var(--deepcharcoal);
+            --text-subtle: #4A5568; /* A nice mid-grey for subtle text */
+            --border-color: #A0AEC0; /* A slightly darker grey for borders */
+            --skeleton-bg: #B0BCC0; /* A shade of Luna Light for skeletons */
+            --input-bg: #E2E8F0; /* A very light grey for inputs */
+        }
+
+        ::selection {
+            background-color: var(--gold);
+            color: var(--black);
+        }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .font-pixel { font-family: 'VT323', monospace; }
+        .bg-gold { background-color: var(--gold); }
+        .text-gold { color: var(--gold); }
+        .border-gold { border-color: var(--gold); }
+        .ring-gold { --tw-ring-color: var(--gold); }
+        .card-shadow { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+        
+        /* Themed elements */
+        .bg-theme-secondary { background-color: var(--bg-secondary); }
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .text-theme-subtle { color: var(--text-subtle); }
+        .border-theme { border-color: var(--border-color); }
+        .skeleton-theme { background-color: var(--skeleton-bg); }
+        .input-theme { background-color: var(--input-bg); }
+        .placeholder-theme::placeholder { color: var(--text-subtle); }
+
+
+        .nav-link.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+        }
+        .nav-link {
+            display: block;
+            text-align: center;
+            padding-bottom: 4px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+            white-space: nowrap;
+        }
+        .page { display: none; }
+        .page.active { 
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Loading & Skeleton */
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-bottom-color: var(--gold);
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .skeleton {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            50% { opacity: .5; }
+        }
+        
+        /* General UI/UX */
+        .button-saved {
+            background-color: #16a34a !important;
+            color: white !important;
+            cursor: not-allowed;
+        }
+        .upload-label {
+            border: 2px dashed var(--gold);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .upload-label:hover {
+            background-color: rgba(212, 175, 55, 0.1);
+        }
+        .smooth-transition { transition: all 0.3s ease-in-out; }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Persistent Navigation Bar -->
+        <header class="bg-black/80 backdrop-blur-sm sticky top-0 z-40 border-b border-gray-800">
+            <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-pixel text-gold">FashionAIre</h1>
+                <div class="flex items-center gap-4">
+                    <button id="theme-toggle-button" class="text-white focus:outline-none">
+                        <svg id="sun-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg id="moon-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                    <button id="hamburger-button" class="text-white focus:outline-none z-60">
+                        <svg id="hamburger-icon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        <svg id="close-icon" class="w-8 h-8 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Fullscreen Menu -->
+        <div id="nav-menu" class="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 hidden flex-col items-center justify-center space-y-6 text-2xl font-pixel smooth-transition opacity-0 text-white">
+            <a href="#generator" class="nav-link">Generator</a>
+            <a href="#previous-fits" class="nav-link">Previous Fits</a>
+            <a href="#fitting-room" class="nav-link">Virtual Fitting Room</a>
+            <a href="#packing-list" class="nav-link">Packing List</a>
+            <a href="#color-analysis" class="nav-link">Color Analysis</a>
+            <a href="#rate-my-fit" class="nav-link">Rate My Fit</a>
+            <a href="#upcycle-studio" class="nav-link">Upcycle Studio</a>
+        </div>
+
+        <main class="flex-grow">
+            <!-- Generator Page -->
+            <div id="generator" class="page p-6 md:p-10">
+                <div class="container mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-pixel text-center mb-10">Outfit Creator</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Left Column: Interfaces -->
+                        <div class="flex flex-col gap-8">
+                            <div class="bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-6 flex flex-col h-[70vh]">
+                                <h3 class="text-2xl font-pixel mb-4">Describe Your Vibe</h3>
+                                <div id="chat-container" class="flex-grow overflow-y-auto pr-2 space-y-4">
+                                    <div class="flex justify-start"><div class="bg-gray-200 text-black rounded-lg p-3 max-w-xs">What kind of style are you feeling today? Or, find out what's new!</div></div>
+                                </div>
+                                <div class="mt-4 flex">
+                                    <button id="trends-button" title="Get current fashion trends" class="bg-gray-600 text-white font-bold p-3 rounded-l-lg hover:bg-gray-700 smooth-transition">✨ Trends</button>
+                                    <input id="style-input" type="text" placeholder="e.g., 'A rainy day in a library'" class="w-full input-theme text-theme-secondary border-y border-theme p-3 focus:outline-none focus:ring-2 ring-gold placeholder-theme">
+                                    <button id="generate-button" class="bg-gold text-black font-bold px-6 py-3 rounded-r-lg hover:opacity-90 smooth-transition flex items-center justify-center">Generate</button>
+                                </div>
+                            </div>
+                            <div class="bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-6">
+                               <h3 class="text-2xl font-pixel mb-4">✨ Style My Pic</h3>
+                               <p class="text-sm text-theme-subtle mb-4">Upload a picture of a clothing item you own, and I'll build outfits around it!</p>
+                               <div class="flex items-center gap-4">
+                                   <div class="w-24 h-24 flex items-center justify-center bg-gray-700 rounded-lg">
+                                       <img id="image-preview" src="" class="hidden w-full h-full object-cover rounded-lg" alt="Image preview">
+                                       <span id="image-placeholder" class="text-gray-400 text-xs text-center">Image Preview</span>
+                                   </div>
+                                   <div class="flex-grow">
+                                       <label for="image-upload" class="upload-label w-full text-center p-4 rounded-lg block text-gold">Choose an Image</label>
+                                       <input id="image-upload" type="file" class="hidden" accept="image/*">
+                                       <button id="style-my-pic-button" disabled class="mt-2 w-full bg-gold text-black font-bold py-2 rounded-lg hover:opacity-90 smooth-transition disabled:opacity-50 disabled:cursor-not-allowed">Style This Item</button>
+                                   </div>
+                               </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Outfit Cards -->
+                        <div id="outfits-container" class="h-full min-h-[70vh] overflow-y-auto space-y-6 pr-2 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                            <div class="col-span-full flex flex-col items-center justify-center h-full text-gray-500">
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="currentColor" class="bi bi-magic mb-4" viewBox="0 0 16 16"><path d="M9.5 2.672a.5.5 0 1 0 1 0V.843a.5.5 0 0 0-1 0v1.829Zm4.5.035A.5.5 0 0 0 13.293 2L12 3.293a.5.5 0 1 0 .707.707L14 2.707a.5.5 0 0 0 0-.707ZM7.293 4L8 3.293a.5.5 0 0 0-.707-.707L6.293 3.586a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l-.707-.707Zm-5.52 4.29a.5.5 0 0 0 0 .708l.707.707a.5.5 0 1 0 .707-.707l-.707-.707a.5.5 0 0 0-.707 0ZM4.5 1.5A.5.5 0 0 0 4 1a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1ZM1.08 7.932a.5.5 0 0 0-.18.893l.29.145a.5.5 0 1 0 .447-.894l-.29-.145a.5.5 0 0 0-.267-.001Zm11.456.894a.5.5 0 0 0 .447.894l.29-.145a.5.5 0 0 0-.267-.895l-.29.146a.5.5 0 0 0-.18.001Z M6 10.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 0-1h-3a.5.5 0 0 0-.5.5Zm-5 3a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 0-1H1.5a.5.5 0 0 0-.5.5ZM11 14.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 0-1h-3a.5.5 0 0 0-.5.5Z"/><path d="M2.5 5.5A.5.5 0 0 1 3 6v1.293l-1.146-1.147a.5.5 0 0 1 .708-.708l1.414 1.414a.5.5 0 0 1 0 .708l-1.414 1.414a.5.5 0 0 1-.708-.708L3 7.707V9a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm10 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V7.707l-1.146 1.147a.5.5 0 0 1-.708-.708l1.414-1.414a.5.5 0 0 1 0-.708l-1.414-1.414a.5.5 0 1 1 .708-.708L13 6.293V6a.5.5 0 0 1 .5-.5Z"/></svg>
+                                <p>Your AI-generated outfits will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="refine-section" class="hidden mt-8">
+                         <h3 class="text-2xl font-pixel text-center mb-4">Refine Your Results</h3>
+                         <div class="max-w-xl mx-auto flex">
+                              <input id="refine-input" type="text" placeholder="e.g., 'Make the first one more formal'" class="w-full input-theme text-theme-secondary border-theme rounded-l-lg p-3 focus:outline-none focus:ring-2 ring-gold placeholder-theme">
+                              <button id="refine-button" class="bg-gold text-black font-bold px-6 py-3 rounded-r-lg hover:opacity-90 smooth-transition flex items-center justify-center">✨ Refine</button>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="previous-fits" class="page p-6 md:p-10">
+                <div class="container mx-auto">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-10">
+                        <h2 class="text-4xl md:text-5xl font-pixel text-center">My Style History</h2>
+                        <button id="wardrobe-dna-button" class="mt-4 md:mt-0 bg-gold text-black font-bold py-2 px-5 rounded-lg hover:opacity-90 smooth-transition flex items-center gap-2">✨ Analyze My Wardrobe DNA</button>
+                    </div>
+                    <div id="previous-fits-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                </div>
+            </div>
+
+            <div id="fitting-room" class="page p-6 md:p-10">
+                <h2 class="text-4xl md:text-5xl font-pixel text-center mb-10">Virtual Try-On</h2>
+                <div class="container mx-auto">
+                    <!-- Step 1: Upload User Photo -->
+                    <div id="fitting-room-step-1" class="max-w-2xl mx-auto bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-8 text-center">
+                        <h3 class="text-2xl font-pixel mb-2">Step 1: Upload Your Photo</h3>
+                        <p class="text-theme-subtle mb-6">For best results, use a clear, full-body photo where your pose is simple.</p>
+                        <label for="try-on-upload" class="upload-label w-full max-w-sm mx-auto p-8 rounded-lg block">
+                            <img id="try-on-preview" src="" class="hidden w-32 h-32 mx-auto object-cover rounded-full mb-4" alt="Your photo preview">
+                            <span id="try-on-placeholder">
+                                <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                <span class="mt-2 block text-gold">Choose Your Photo</span>
+                            </span>
+                        </label>
+                        <input id="try-on-upload" type="file" class="hidden" accept="image/*">
+                    </div>
+            
+                    <!-- Step 2: Select Saved Outfit -->
+                    <div id="fitting-room-step-2" class="hidden">
+                        <h3 class="text-2xl font-pixel text-center mb-6">Step 2: Select an Outfit to Try On</h3>
+                        <div id="fitting-room-saved-fits-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            <!-- Saved outfits will be rendered here -->
+                        </div>
+                    </div>
+            
+                    <!-- Step 3: Display Result -->
+                    <div id="fitting-room-final-display" class="hidden mt-8 w-full max-w-2xl mx-auto h-[70vh] bg-theme-secondary rounded-xl card-shadow flex flex-col justify-center items-center text-theme-secondary p-4 relative">
+                        <!-- Final generated image will be shown here -->
+                    </div>
+
+                     <div id="image-refine-controls" class="hidden mt-8 container mx-auto max-w-2xl">
+                         <h3 class="text-lg font-pixel text-center mb-2">✨ Style Makeover</h3>
+                         <div class="flex">
+                             <input id="image-refine-input" type="text" placeholder="e.g., 'Change the shoes to red boots'" class="w-full input-theme text-theme-secondary border-theme rounded-l-lg p-3 focus:outline-none focus:ring-2 ring-gold placeholder-theme">
+                             <button id="image-refine-button" class="bg-gold text-black font-bold px-6 py-3 rounded-r-lg hover:opacity-90 smooth-transition flex items-center justify-center">Refine Image</button>
+                         </div>
+                     </div>
+                </div>
+            </div>
+
+            <div id="packing-list" class="page p-6 md:p-10">
+                <div class="container mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-pixel text-center mb-10">✨ Pack My Bag</h2>
+                    <div class="max-w-2xl mx-auto bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-8">
+                        <p class="text-center text-theme-subtle mb-4">Describe your trip, and I'll generate a personalized, interactive packing list with outfit suggestions!</p>
+                        <div class="flex">
+                            <input id="trip-input" type="text" placeholder="e.g., 'A 5-day beach vacation in Goa'" class="w-full input-theme text-theme-secondary border border-theme rounded-l-lg p-3 focus:outline-none focus:ring-2 ring-gold placeholder-theme">
+                            <button id="pack-button" class="bg-gold text-black font-bold px-6 py-3 rounded-r-lg hover:opacity-90 smooth-transition flex items-center justify-center">Generate List</button>
+                        </div>
+                        <div id="packing-list-results" class="mt-8"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="color-analysis" class="page p-6 md:p-10">
+                 <div class="container mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-pixel text-center mb-10">✨ Color Palette Advisor</h2>
+                    <div class="max-w-2xl mx-auto bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-8">
+                        <p class="text-center text-theme-subtle mb-4">Upload a clear, well-lit photo of your face, and I'll analyze your personal color palette to find the shades that suit you best!</p>
+                        <div class="flex flex-col md:flex-row items-center gap-4">
+                           <div class="w-32 h-32 flex-shrink-0 items-center justify-center bg-gray-700 rounded-lg">
+                               <img id="color-analysis-preview" src="" class="hidden w-full h-full object-cover rounded-lg" alt="Color analysis preview">
+                               <span id="color-analysis-placeholder" class="text-gray-400 text-xs text-center p-4">Your Photo</span>
+                           </div>
+                           <div class="flex-grow w-full">
+                               <label for="color-analysis-upload" class="upload-label w-full text-center p-4 rounded-lg block text-gold">Choose a Photo</label>
+                               <input id="color-analysis-upload" type="file" class="hidden" accept="image/*">
+                           </div>
+                        </div>
+                        <div id="color-analysis-results" class="mt-8"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="rate-my-fit" class="page p-6 md:p-10">
+                 <div class="container mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-pixel text-center mb-10">✨ Rate My Fit</h2>
+                    <div class="max-w-2xl mx-auto bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-8">
+                        <p class="text-center text-theme-subtle mb-4">Upload a photo of your outfit. I'll identify the style and give you some friendly, constructive feedback!</p>
+                        <div class="flex flex-col md:flex-row items-center gap-4">
+                           <div class="w-32 h-32 flex-shrink-0 items-center justify-center bg-gray-700 rounded-lg">
+                               <img id="rate-my-fit-preview" src="" class="hidden w-full h-full object-cover rounded-lg" alt="Rate my fit preview">
+                               <span id="rate-my-fit-placeholder" class="text-gray-400 text-xs text-center p-4">Your Outfit</span>
+                           </div>
+                           <div class="flex-grow w-full">
+                               <label for="rate-my-fit-upload" class="upload-label w-full text-center p-4 rounded-lg block text-gold">Choose a Photo</label>
+                               <input id="rate-my-fit-upload" type="file" class="hidden" accept="image/*">
+                           </div>
+                        </div>
+                        <div id="rate-my-fit-results" class="mt-8"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="upcycle-studio" class="page p-6 md:p-10">
+                <div class="container mx-auto">
+                   <h2 class="text-4xl md:text-5xl font-pixel text-center mb-10">✨ Upcycle Studio</h2>
+                   <div class="max-w-2xl mx-auto bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-8">
+                       <p class="text-center text-theme-subtle mb-4">Got an old piece of clothing? Upload a photo and I'll give you creative DIY ideas to give it a new life!</p>
+                       <div class="flex flex-col md:flex-row items-center gap-4">
+                          <div class="w-32 h-32 flex-shrink-0 items-center justify-center bg-gray-700 rounded-lg">
+                              <img id="upcycle-preview" src="" class="hidden w-full h-full object-cover rounded-lg" alt="Upcycle preview">
+                              <span id="upcycle-placeholder" class="text-gray-400 text-xs text-center p-4">Your Item</span>
+                          </div>
+                          <div class="flex-grow w-full">
+                              <label for="upcycle-upload" class="upload-label w-full text-center p-4 rounded-lg block text-gold">Choose a Photo</label>
+                              <input id="upcycle-upload" type="file" class="hidden" accept="image/*">
+                          </div>
+                       </div>
+                   </div>
+                   <div id="upcycle-results" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                       <!-- Upcycle ideas will appear here -->
+                   </div>
+               </div>
+           </div>
+            
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="keywords-modal" class="modal-overlay">
+        <div class="modal-content text-theme-secondary bg-theme-secondary">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-pixel text-gold">Styling Keywords</h3>
+                <button data-close-modal class="text-theme-subtle hover:text-theme-primary text-3xl">&times;</button>
+            </div>
+            <div id="keywords-content"></div>
+             <p class="text-xs text-theme-subtle mt-4">Use these terms to find similar items online!</p>
+        </div>
+    </div>
+    
+    <div id="accessorize-modal" class="modal-overlay">
+        <div class="modal-content text-theme-secondary bg-theme-secondary">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-pixel text-gold">Accessory Ideas</h3>
+                <button data-close-modal class="text-theme-subtle hover:text-theme-primary text-3xl">&times;</button>
+            </div>
+            <div id="accessorize-content"></div>
+        </div>
+    </div>
+
+    <div id="wardrobe-dna-modal" class="modal-overlay">
+        <div class="modal-content text-theme-secondary bg-theme-secondary">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-pixel text-gold">Your Wardrobe DNA</h3>
+                <button data-close-modal class="text-theme-subtle hover:text-theme-primary text-3xl">&times;</button>
+            </div>
+            <div id="wardrobe-dna-content"></div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const apiKey = ""; // Leave as-is for the environment to fill
+
+            // --- STATE ---
+            let currentOutfits = [];
+            let savedOutfits = JSON.parse(localStorage.getItem('savedOutfits')) || [];
+            let uploadedImageBase64 = null;
+            let userTryOnImageBase64 = null;
+            let currentTryOnOutfit = null;
+            let currentFittingRoomImageBase64 = null;
+
+
+            // --- DOM ELEMENTS (Grouped for clarity) ---
+            const DOMElements = {
+                body: document.body,
+                themeToggleButton: document.getElementById('theme-toggle-button'),
+                sunIcon: document.getElementById('sun-icon'),
+                moonIcon: document.getElementById('moon-icon'),
+                navLinks: document.querySelectorAll('.nav-link'),
+                pages: document.querySelectorAll('.page'),
+                navMenu: document.getElementById('nav-menu'),
+                hamburgerButton: document.getElementById('hamburger-button'),
+                hamburgerIcon: document.getElementById('hamburger-icon'),
+                closeIcon: document.getElementById('close-icon'),
+                modals: {
+                    keywords: document.getElementById('keywords-modal'),
+                    accessorize: document.getElementById('accessorize-modal'),
+                    wardrobeDna: document.getElementById('wardrobe-dna-modal'),
+                    keywordsContent: document.getElementById('keywords-content'),
+                    accessorizeContent: document.getElementById('accessorize-content'),
+                    wardrobeDnaContent: document.getElementById('wardrobe-dna-content'),
+                },
+                generator: {
+                    generateButton: document.getElementById('generate-button'),
+                    trendsButton: document.getElementById('trends-button'),
+                    styleInput: document.getElementById('style-input'),
+                    chatContainer: document.getElementById('chat-container'),
+                    outfitsContainer: document.getElementById('outfits-container'),
+                    refineSection: document.getElementById('refine-section'),
+                    refineInput: document.getElementById('refine-input'),
+                    refineButton: document.getElementById('refine-button'),
+                    imageUpload: document.getElementById('image-upload'),
+                    imagePreview: document.getElementById('image-preview'),
+                    imagePlaceholder: document.getElementById('image-placeholder'),
+                    styleMyPicButton: document.getElementById('style-my-pic-button'),
+                },
+                previousFits: { 
+                    grid: document.getElementById('previous-fits-grid'),
+                    wardrobeDnaButton: document.getElementById('wardrobe-dna-button'),
+                },
+                fittingRoom: { 
+                    step1: document.getElementById('fitting-room-step-1'),
+                    step2: document.getElementById('fitting-room-step-2'),
+                    finalDisplay: document.getElementById('fitting-room-final-display'),
+                    upload: document.getElementById('try-on-upload'),
+                    preview: document.getElementById('try-on-preview'),
+                    placeholder: document.getElementById('try-on-placeholder'),
+                    savedFitsGrid: document.getElementById('fitting-room-saved-fits-grid'),
+                    refineControls: document.getElementById('image-refine-controls'),
+                    refineInput: document.getElementById('image-refine-input'),
+                    refineButton: document.getElementById('image-refine-button'),
+                },
+                packingList: {
+                    input: document.getElementById('trip-input'),
+                    button: document.getElementById('pack-button'),
+                    results: document.getElementById('packing-list-results'),
+                },
+                colorAnalysis: {
+                    upload: document.getElementById('color-analysis-upload'),
+                    preview: document.getElementById('color-analysis-preview'),
+                    placeholder: document.getElementById('color-analysis-placeholder'),
+                    results: document.getElementById('color-analysis-results'),
+                },
+                rateMyFit: {
+                    upload: document.getElementById('rate-my-fit-upload'),
+                    preview: document.getElementById('rate-my-fit-preview'),
+                    placeholder: document.getElementById('rate-my-fit-placeholder'),
+                    results: document.getElementById('rate-my-fit-results'),
+                },
+                upcycleStudio: {
+                    upload: document.getElementById('upcycle-upload'),
+                    preview: document.getElementById('upcycle-preview'),
+                    placeholder: document.getElementById('upcycle-placeholder'),
+                    results: document.getElementById('upcycle-results'),
+                }
+            };
+
+            // --- API HELPERS ---
+            const callApiWithExponentialBackoff = async (url, payload, maxRetries = 5) => {
+                let delay = 1000;
+                for (let i = 0; i < maxRetries; i++) {
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (response.ok) return response.json();
+                    } catch (error) { console.error("Fetch error:", error); }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+                throw new Error("API call failed after multiple retries.");
+            };
+
+            // --- UI/UX HELPERS ---
+            const showModal = (modal) => modal.classList.add('visible');
+            const hideModals = () => Object.values(DOMElements.modals).forEach(el => el.classList?.remove('visible'));
+            const showLoader = (container, text = '') => {
+                container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center"><div class="loader !w-10 !h-10 !border-4"></div><p class="mt-4 text-theme-subtle">${text}</p></div>`;
+            };
+            const showError = (container, message) => {
+                container.innerHTML = `<div class="text-center text-red-400 p-4 border border-red-400 rounded-lg">${message}</div>`;
+            };
+            const toggleMenu = () => {
+                const { navMenu, hamburgerIcon, closeIcon } = DOMElements;
+                const isOpen = !navMenu.classList.contains('hidden');
+
+                if (isOpen) {
+                    navMenu.classList.add('opacity-0');
+                    setTimeout(() => navMenu.classList.add('hidden'), 300);
+                } else {
+                    navMenu.classList.remove('hidden');
+                    setTimeout(() => navMenu.classList.remove('opacity-0'), 10);
+                }
+                
+                hamburgerIcon.classList.toggle('hidden');
+                closeIcon.classList.toggle('hidden');
+            };
+            const setInitialViewState = (pageId) => {
+                const placeholders = {
+                    'previous-fits': () => DOMElements.previousFits.grid.innerHTML = `<p class="col-span-full text-center text-theme-subtle">You haven't saved any fits yet. Go generate some!</p>`,
+                    'fitting-room': () => {
+                        const { step1, step2, finalDisplay, refineControls, preview, placeholder } = DOMElements.fittingRoom;
+                        step1.classList.remove('hidden');
+                        step2.classList.add('hidden');
+                        finalDisplay.classList.add('hidden');
+                        refineControls.classList.add('hidden');
+                        preview.src = '';
+                        preview.classList.add('hidden');
+                        placeholder.classList.remove('hidden');
+                    },
+                };
+                placeholders[pageId]?.();
+            };
+
+            // --- THEME LOGIC ---
+            const applyTheme = (theme) => {
+                const { body, sunIcon, moonIcon } = DOMElements;
+                if (theme === 'light') {
+                    body.classList.add('light-mode');
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                } else {
+                    body.classList.remove('light-mode');
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+                }
+            };
+
+            const toggleTheme = () => {
+                const currentTheme = DOMElements.body.classList.contains('light-mode') ? 'light' : 'dark';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            };
+
+            DOMElements.themeToggleButton.addEventListener('click', toggleTheme);
+
+            // --- NAVIGATION ---
+            const handleNavigation = () => {
+                const hash = window.location.hash || '#generator';
+                DOMElements.navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === hash));
+                DOMElements.pages.forEach(page => page.classList.toggle('active', `#${page.id}` === hash));
+                if (hash === '#previous-fits') renderSavedOutfits();
+                else setInitialViewState(hash.substring(1));
+            };
+            DOMElements.navLinks.forEach(link => link.addEventListener('click', (e) => { 
+                // The browser's default action will change the hash, which triggers the 'hashchange' listener.
+                // We only need to worry about closing the menu here.
+                if (!DOMElements.navMenu.classList.contains('hidden')) {
+                    toggleMenu();
+                }
+            }));
+            window.addEventListener('hashchange', handleNavigation);
+            DOMElements.hamburgerButton.addEventListener('click', toggleMenu);
+            
+            // --- CORE API LOGIC ---
+            async function getOutfitDescriptions(prompt, imageBase64 = null) {
+                 const systemPrompt = `You are a fashion expert AI. Generate 3 distinct outfit ideas based on the user's prompt ${imageBase64 ? "and the provided image" : ""}. For each outfit, provide a "title", a "description", a "style_prompt" for an image AI (e.g., "full-body fashion photo, mannequin, studio lighting, casual chic, beige trench coat, white t-shirt, blue jeans, white sneakers"), and "keywords" for shopping. Respond with a JSON object: {"outfits": [...]}.`;
+                const userParts = [{ text: `System instruction: ${systemPrompt}\nUser prompt: ${prompt}` }];
+                if (imageBase64) {
+                    const itemIdentificationPrompt = "First, identify the single most prominent clothing item in this image. Respond with a short phrase, like 'a blue denim jacket'.";
+                    const identificationPayload = { contents: [{ role: "user", parts: [{ text: itemIdentificationPrompt }, { inlineData: { mimeType: 'image/jpeg', data: imageBase64.split(',')[1] } }] }] };
+                    const idUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const idResult = await callApiWithExponentialBackoff(idUrl, identificationPayload);
+                    const itemName = idResult.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if(itemName) addMessageToChat(`Okay, I see you have ${itemName}. Here are some ideas on how to style it:`, 'ai');
+                    userParts.push({ inlineData: { mimeType: 'image/jpeg', data: imageBase64.split(',')[1] } });
+                }
+                const payload = {
+                    contents: [{ role: "user", parts: userParts }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: { type: "OBJECT", properties: { "outfits": { type: "ARRAY", items: { type: "OBJECT", properties: { "title": { "type": "STRING" }, "description": { "type": "STRING" }, "style_prompt": { "type": "STRING" }, "keywords": { "type": "ARRAY", "items": { "type": "STRING" } } }, required: ["title", "description", "style_prompt", "keywords"] } } } }
+                    }
+                };
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const result = await callApiWithExponentialBackoff(url, payload);
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!jsonText) throw new Error("Failed to get outfit descriptions.");
+                return JSON.parse(jsonText).outfits;
+            }
+
+            async function generateImage(prompt) {
+                const payload = { instances: [{ prompt }], parameters: { "sampleCount": 1 } };
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                const result = await callApiWithExponentialBackoff(url, payload);
+                const base64Data = result.predictions?.[0]?.bytesBase64Encoded;
+                if (!base64Data) throw new Error("Failed to generate image.");
+                return `data:image/png;base64,${base64Data}`;
+            }
+            
+            async function generateClothingImage(prompt, containerElement) {
+                const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'] } };
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+                try {
+                    const result = await callApiWithExponentialBackoff(url, payload);
+                    const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                    if (base64Data) {
+                        const img = document.createElement('img');
+                        img.src = `data:image/png;base64,${base64Data}`;
+                        img.alt = prompt;
+                        img.className = "w-full h-full object-cover rounded-lg";
+                        containerElement.innerHTML = '';
+                        containerElement.appendChild(img);
+                    } else { throw new Error("No image data in response."); }
+                } catch (error) { containerElement.innerHTML = `<p class="text-xs text-red-500">Image failed</p>`; }
+            }
+
+            // --- RENDER FUNCTIONS ---
+            const addMessageToChat = (text, sender = 'ai') => {
+                const { chatContainer } = DOMElements.generator;
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+                messageDiv.innerHTML = `<div class="${sender === 'user' ? 'bg-gold text-black' : 'bg-gray-200 text-black'} rounded-lg p-3 max-w-xs">${text}</div>`;
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            };
+
+            const renderOutfits = (outfits) => {
+                const { outfitsContainer, refineSection } = DOMElements.generator;
+                outfitsContainer.innerHTML = '';
+                currentOutfits = outfits;
+                outfits.forEach((outfit, index) => {
+                    const isSaved = savedOutfits.some(saved => saved.title === outfit.title);
+                    const card = document.createElement('div');
+                    card.className = 'bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-4 flex flex-col smooth-transition';
+                    card.style.opacity = '0';
+                    card.innerHTML = `
+                        <img src="${outfit.imageUrl}" alt="${outfit.title}" class="w-full h-64 object-cover rounded-lg mb-4">
+                        <h4 class="text-xl font-bold mb-2">${outfit.title}</h4>
+                        <p class="text-sm text-theme-subtle flex-grow">${outfit.description}</p>
+                        <div class="mt-4 flex flex-col space-y-2 text-sm">
+                            <button data-action="save" data-index="${index}" class="w-full py-2 px-4 rounded-lg smooth-transition ${isSaved ? 'button-saved' : 'bg-gray-600 hover:bg-gray-700 text-white'}">${isSaved ? 'Saved ✔' : 'Save to Try On'}</button>
+                            <button data-action="keywords" data-index="${index}" class="w-full py-2 px-4 rounded-lg bg-gray-600 hover:bg-gray-700 text-white smooth-transition">Show Keywords</button>
+                            <button data-action="accessorize" data-index="${index}" class="w-full py-2 px-4 rounded-lg bg-black text-white hover:bg-gray-800 smooth-transition">✨ Accessorize</button>
+                        </div>`;
+                    outfitsContainer.appendChild(card);
+                    setTimeout(() => card.style.opacity = '1', index * 100);
+                });
+                refineSection.classList.remove('hidden');
+            };
+
+            const renderSavedOutfits = () => {
+                const { grid } = DOMElements.previousFits;
+                if (savedOutfits.length === 0) {
+                    setInitialViewState('previous-fits');
+                    return;
+                }
+                grid.innerHTML = savedOutfits.slice().reverse().map((outfit, index) => {
+                    const originalIndex = savedOutfits.length - 1 - index;
+                    return `
+                    <div class="bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-3" data-prompt="${outfit.style_prompt}">
+                        <div class="w-full h-48 skeleton-theme rounded-lg mb-3 skeleton"></div>
+                        <h4 class="font-bold truncate">${outfit.title}</h4>
+                        <button data-action="remove-saved" data-index="${originalIndex}" class="text-xs text-red-400 hover:underline mt-1">Remove</button>
+                    </div>`;
+                }).join('');
+            
+                // Now populate images
+                grid.querySelectorAll('[data-prompt]').forEach(async card => {
+                    const prompt = card.dataset.prompt;
+                    const imageContainer = card.querySelector('.skeleton');
+                    try {
+                        const imageUrl = await generateImage(prompt);
+                        const img = document.createElement('img');
+                        img.src = imageUrl;
+                        img.className = "w-full h-48 object-cover rounded-lg mb-3";
+                        imageContainer.replaceWith(img);
+                    } catch (error) {
+                        imageContainer.innerHTML = `<p class="text-xs text-red-500 p-2">Img Fail</p>`;
+                    }
+                });
+            };
+
+            // --- EVENT HANDLERS ---
+            const handleGenerate = async (prompt, imageBase64 = null) => {
+                if (!prompt && !imageBase64) return;
+                const { generateButton, styleMyPicButton, outfitsContainer } = DOMElements.generator;
+                const displayPrompt = prompt || "Style this item";
+                addMessageToChat(displayPrompt, 'user');
+                showLoader(outfitsContainer, 'Weaving some style magic...');
+                generateButton.disabled = true;
+                styleMyPicButton.disabled = true;
+                generateButton.innerHTML = '<span class="loader"></span>';
+
+                try {
+                    const outfitsData = await getOutfitDescriptions(displayPrompt, imageBase64);
+                    addMessageToChat("Here are a few ideas I've put together...", 'ai');
+                    const outfitsWithImages = await Promise.all(outfitsData.map(async (outfit) => {
+                        const imageUrl = await generateImage(outfit.style_prompt);
+                        return { ...outfit, imageUrl };
+                    }));
+                    renderOutfits(outfitsWithImages);
+                } catch (error) {
+                    showError(outfitsContainer, error.message);
+                    addMessageToChat(`Sorry, I ran into an error: ${error.message}`, 'ai');
+                } finally {
+                    generateButton.disabled = false;
+                    styleMyPicButton.disabled = (uploadedImageBase64 === null);
+                    generateButton.innerText = 'Generate';
+                }
+            };
+            
+            // --- OUTFIT CARD ACTIONS ---
+            DOMElements.generator.outfitsContainer.addEventListener('click', async (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+                const { action, index } = button.dataset;
+                const outfit = currentOutfits[parseInt(index, 10)];
+
+                const actions = {
+                    save: () => {
+                        if (button.disabled) return;
+                        const fitToSave = {
+                            title: outfit.title,
+                            description: outfit.description,
+                            style_prompt: outfit.style_prompt,
+                            keywords: outfit.keywords
+                        };
+                        savedOutfits.push(fitToSave);
+                        localStorage.setItem('savedOutfits', JSON.stringify(savedOutfits));
+                        button.classList.add('button-saved');
+                        button.textContent = 'Saved ✔';
+                        button.disabled = true;
+                    },
+                    keywords: () => {
+                        DOMElements.modals.keywordsContent.innerHTML = `<h4 class="font-bold text-lg mb-2">${outfit.title}</h4><div class="flex flex-wrap gap-2">${outfit.keywords.map(kw => `<span class="bg-gray-700 text-sm rounded-full px-3 py-1">${kw}</span>`).join('')}</div>`;
+                        showModal(DOMElements.modals.keywords);
+                    },
+                    accessorize: async () => {
+                        showModal(DOMElements.modals.accessorize);
+                        showLoader(DOMElements.modals.accessorizeContent);
+                        try {
+                            const systemPrompt = "As a fashion stylist, suggest 3-4 specific accessories (jewelry, bag, belt, shoes) for the outfit. Give a brief reason for each. Return a JSON object: {\"accessories\": [{\"item\": string, \"reason\": string}]}";
+                            const payload = {
+                                contents: [{ role: "user", parts: [{ text: `System instruction: ${systemPrompt}\nOutfit: ${outfit.description}` }] }],
+                                generationConfig: {
+                                    responseMimeType: "application/json",
+                                    responseSchema: { type: "OBJECT", properties: { "accessories": { type: "ARRAY", items: { type: "OBJECT", properties: { "item": { "type": "STRING" }, "reason": { "type": "STRING" } }, required: ["item", "reason"] } } } }
+                                }
+                            };
+                            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                            const result = await callApiWithExponentialBackoff(url, payload);
+                            const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (!jsonText) throw new Error("Could not get accessory suggestions.");
+                            const { accessories } = JSON.parse(jsonText);
+                            DOMElements.modals.accessorizeContent.innerHTML = `<ul class="space-y-3">${accessories.map(acc => `<li><strong class="font-bold">${acc.item}:</strong> ${acc.reason}</li>`).join('')}</ul>`;
+                        } catch (error) { showError(DOMElements.modals.accessorizeContent, "Could not generate accessory ideas."); }
+                    }
+                };
+                actions[action]?.();
+            });
+
+            // --- OTHER EVENT LISTENERS ---
+            DOMElements.generator.generateButton.addEventListener('click', () => handleGenerate(DOMElements.generator.styleInput.value));
+            DOMElements.generator.styleInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleGenerate(DOMElements.generator.styleInput.value));
+            
+            DOMElements.generator.trendsButton.addEventListener('click', () => {
+                const trendsPrompt = "Top 3 fashion trends for a young adult now? One casual, one smart-casual, and one formal.";
+                DOMElements.generator.styleInput.value = trendsPrompt;
+                handleGenerate(trendsPrompt);
+            });
+
+            DOMElements.generator.refineButton.addEventListener('click', () => {
+                const refinePrompt = DOMElements.generator.refineInput.value;
+                if (!refinePrompt || currentOutfits.length === 0) return;
+                const fullPrompt = `Refine these outfits: ${JSON.stringify(currentOutfits.map(o => o.title))}. User's request: "${refinePrompt}". Generate 3 new outfits.`;
+                DOMElements.generator.refineInput.value = '';
+                handleGenerate(fullPrompt);
+            });
+
+            DOMElements.previousFits.grid.addEventListener('click', (e) => {
+                const button = e.target.closest('button[data-action="remove-saved"]');
+                if (button) {
+                    const originalIndex = parseInt(button.dataset.index, 10);
+                    savedOutfits.splice(originalIndex, 1);
+                    localStorage.setItem('savedOutfits', JSON.stringify(savedOutfits));
+                    renderSavedOutfits();
+                }
+            });
+
+            document.querySelectorAll('[data-close-modal], .modal-overlay').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    if (e.target === el) hideModals();
+                });
+            });
+
+            const handleImageUpload = (e, previewEl, placeholderEl, callback) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const base64 = event.target.result;
+                        previewEl.src = base64;
+                        previewEl.classList.remove('hidden');
+                        placeholderEl.classList.add('hidden');
+                        if (callback) callback(base64);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            
+            DOMElements.generator.imageUpload.addEventListener('change', (e) => handleImageUpload(e, DOMElements.generator.imagePreview, DOMElements.generator.imagePlaceholder, (base64) => {
+                uploadedImageBase64 = base64;
+                DOMElements.generator.styleMyPicButton.disabled = false;
+            }));
+             DOMElements.generator.styleMyPicButton.addEventListener('click', () => {
+                if (uploadedImageBase64) handleGenerate(null, uploadedImageBase64);
+            });
+
+            DOMElements.colorAnalysis.upload.addEventListener('change', (e) => handleImageUpload(e, DOMElements.colorAnalysis.preview, DOMElements.colorAnalysis.placeholder, (base64) => {
+                analyzeUserColors(base64);
+            }));
+
+            DOMElements.packingList.button.addEventListener('click', async () => {
+                const { input, button, results } = DOMElements.packingList;
+                const prompt = input.value.trim();
+                if (!prompt) return;
+                button.disabled = true;
+                showLoader(results, 'Creating your packing list...');
+                try {
+                    const systemPrompt = `Based on the user's trip description, generate a comprehensive packing list. Structure the response as a JSON object with categories as keys (e.g., "Clothing", "Toiletries", "Documents") and values as arrays of objects, each with "item" (string), "quantity" (number), and "packed" (boolean, default false). Also include a "suggestedOutfits" key with an array of strings describing 3-4 outfit ideas.`;
+                    const payload = {
+                        contents: [{ role: "user", parts: [{ text: `System instruction: ${systemPrompt}\nTrip: ${prompt}` }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    };
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const result = await callApiWithExponentialBackoff(url, payload);
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!jsonText) throw new Error("Could not generate packing list.");
+                    const listData = JSON.parse(jsonText);
+                    
+                    let html = `<div id="interactive-packing-list">`;
+                    for (const category in listData) {
+                        if (category === 'suggestedOutfits') continue;
+                        html += `<h4 class="font-bold text-lg mt-4 mb-2 text-gold">${category}</h4><ul class="space-y-2">`;
+                        listData[category].forEach((item, index) => {
+                             html += `<li class="flex items-center"><input type="checkbox" id="${category}-${index}" class="mr-3 w-4 h-4 accent-gold"><label for="${category}-${index}" class="flex-grow cursor-pointer">${item.item} (x${item.quantity})</label></li>`;
+                        });
+                        html += `</ul>`;
+                    }
+                    html += `</div>`;
+
+                    if (listData.suggestedOutfits) {
+                        html += `<h4 class="font-bold text-lg mt-6 mb-2 text-gold">Outfit Suggestions</h4><ul class="list-disc list-inside space-y-1 text-theme-subtle">`;
+                        listData.suggestedOutfits.forEach(outfit => {
+                            html += `<li>${outfit}</li>`;
+                        });
+                        html += `</ul>`;
+                    }
+                    results.innerHTML = html;
+                    results.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                        checkbox.addEventListener('change', (e) => {
+                            e.target.nextElementSibling.classList.toggle('line-through', e.target.checked);
+                            e.target.nextElementSibling.classList.toggle('text-theme-subtle', e.target.checked);
+                        });
+                    });
+                } catch (error) { showError(results, error.message); } 
+                finally { button.disabled = false; }
+            });
+            
+            async function analyzeUserColors(imageBase64) {
+                 const { results } = DOMElements.colorAnalysis;
+                 showLoader(results, 'Analyzing your palette and features...');
+                 try {
+                    // --- Step 1: Analyze Color Palette ---
+                    const colorSystemPrompt = "As a color analyst, analyze the user's photo to determine their color season (e.g., 'Warm Autumn'). Provide their most flattering colors and colors to avoid. Return a JSON object: {\"season\": string, \"flatteringColors\": [{\"name\": string, \"hex\": string}], \"colorsToAvoid\": [{\"name\": string, \"hex\": string}]}.";
+                    const colorPayload = {
+                        contents: [{ role: "user", parts: [{ text: `System instruction: ${colorSystemPrompt}` }, { inlineData: { mimeType: 'image/jpeg', data: imageBase64.split(',')[1] } }] }],
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: { type: "OBJECT", properties: { "season": { "type": "STRING" }, "flatteringColors": { type: "ARRAY", "items": { type: "OBJECT", properties: { "name": { "type": "STRING" }, "hex": { "type": "STRING" } } } }, "colorsToAvoid": { type: "ARRAY", "items": { type: "OBJECT", properties: { "name": { "type": "STRING" }, "hex": { "type": "STRING" } } } } }, required: ["season", "flatteringColors", "colorsToAvoid"] }
+                        }
+                    };
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const colorResult = await callApiWithExponentialBackoff(url, colorPayload);
+                    const colorJsonText = colorResult.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!colorJsonText) throw new Error("Could not analyze color palette.");
+                    const { season, flatteringColors, colorsToAvoid } = JSON.parse(colorJsonText);
+
+                    // --- Step 2: Determine Gender ---
+                    const genderPrompt = "Analyze the photo and determine the most likely gender of the person. Respond with a single word: 'male' or 'female'.";
+                    const genderPayload = {
+                        contents: [{ role: "user", parts: [{ text: genderPrompt }, { inlineData: { mimeType: 'image/jpeg', data: imageBase64.split(',')[1] } }] }]
+                    };
+                    const genderResult = await callApiWithExponentialBackoff(url, genderPayload);
+                    const detectedGender = genderResult.candidates?.[0]?.content?.parts?.[0]?.text.trim().toLowerCase() || 'unisex';
+
+                    // --- Step 3: Render Results ---
+                    const createSwatch = c => `<div class="flex items-center gap-2"><div class="w-5 h-5 rounded-full border border-gray-500" style="background-color: ${c.hex};"></div><span>${c.name}</span></div>`;
+                    results.innerHTML = `
+                        <div class="text-center mt-4">
+                            <p class="text-theme-subtle">Your analysis suggests you are a:</p>
+                            <h3 class="text-3xl font-pixel text-gold">${season}</h3>
+                        </div>
+                        <div class="mt-6"><h4 class="font-bold text-lg text-green-400">Flattering Colors:</h4><div class="flex flex-wrap gap-x-4 gap-y-2 mt-2">${flatteringColors.map(createSwatch).join('')}</div></div>
+                        <div class="mt-6"><h4 class="font-bold text-lg text-red-400">Colors to be Mindful Of:</h4><div class="flex flex-wrap gap-x-4 gap-y-2 mt-2">${colorsToAvoid.map(createSwatch).join('')}</div></div>
+                        <button id="generate-in-my-colors" data-gender="${detectedGender}" class="mt-6 w-full bg-gold text-black font-bold py-2 rounded-lg hover:opacity-90 smooth-transition">✨ Generate an Outfit in My Colors</button>
+                    `;
+                    document.getElementById('generate-in-my-colors').addEventListener('click', (e) => {
+                         const gender = e.currentTarget.dataset.gender;
+                         window.location.hash = '#generator';
+                         handleNavigation();
+                         const colorPrompt = `Generate a ${gender} outfit for a '${season}' color type, using colors like ${flatteringColors.slice(0, 3).map(c => c.name).join(', ')}.`;
+                         DOMElements.generator.styleInput.value = colorPrompt;
+                         handleGenerate(colorPrompt);
+                    });
+
+                 } catch (error) { showError(results, "Sorry, an error occurred during analysis."); }
+            }
+
+            // --- NEW FEATURE HANDLERS ---
+            async function rateFit(imageBase64) {
+                const { results } = DOMElements.rateMyFit;
+                showLoader(results, 'Analyzing your style...');
+                try {
+                    const systemPrompt = "You are a friendly and constructive fashion critic. Analyze the user's outfit in the photo. Identify the style (e.g., 'Streetwear', 'Bohemian', 'Minimalist'). Provide one piece of positive feedback and one suggestion for improvement. Respond in a JSON object: {\"style\": string, \"positiveFeedback\": string, \"suggestion\": string}.";
+                    const payload = {
+                        contents: [{ role: "user", parts: [{ text: `System instruction: ${systemPrompt}` }, { inlineData: { mimeType: 'image/jpeg', data: imageBase64.split(',')[1] } }] }],
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: { type: "OBJECT", properties: { "style": { "type": "STRING" }, "positiveFeedback": { "type": "STRING" }, "suggestion": { "type": "STRING" } }, required: ["style", "positiveFeedback", "suggestion"] }
+                        }
+                    };
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const result = await callApiWithExponentialBackoff(url, payload);
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!jsonText) throw new Error("Could not rate fit.");
+                    const { style, positiveFeedback, suggestion } = JSON.parse(jsonText);
+                    results.innerHTML = `
+                        <div class="space-y-4">
+                            <div><h4 class="font-bold text-lg text-gold">Identified Style:</h4><p>${style}</p></div>
+                            <div><h4 class="font-bold text-lg text-green-400">What Works:</h4><p>${positiveFeedback}</p></div>
+                            <div><h4 class="font-bold text-lg text-yellow-400">One Suggestion:</h4><p>${suggestion}</p></div>
+                        </div>`;
+                } catch (error) { showError(results, "Sorry, couldn't analyze the outfit."); }
+            }
+
+            async function getUpcycleIdeas(imageBase64) {
+                const { results } = DOMElements.upcycleStudio;
+                showLoader(results, 'Getting creative...');
+
+                try {
+                    const systemPrompt = `You are a DIY and fashion upcycling expert. Analyze the clothing item in the photo. Generate 3 distinct, creative, and actionable DIY upcycling ideas. For each idea, provide a "title", a "difficulty" (easy, medium, hard), a "description" of the project, and a "materials" list. Respond with a JSON object: {"ideas": [...]}.`;
+                    const payload = {
+                        contents: [{ role: "user", parts: [{ text: `System instruction: ${systemPrompt}` }, { inlineData: { mimeType: 'image/jpeg', data: imageBase64.split(',')[1] } }] }],
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: { type: "OBJECT", properties: { "ideas": { type: "ARRAY", items: { type: "OBJECT", properties: { "title": { "type": "STRING" }, "difficulty": { "type": "STRING" }, "description": { "type": "STRING" }, "materials": { "type": "ARRAY", "items": { "type": "STRING" } } }, required: ["title", "difficulty", "description", "materials"] } } } }
+                        }
+                    };
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const result = await callApiWithExponentialBackoff(url, payload);
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!jsonText) throw new Error("Could not get upcycling ideas.");
+                    const { ideas } = JSON.parse(jsonText);
+
+                    results.innerHTML = ideas.map(idea => `
+                        <div class="bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-6">
+                            <h4 class="text-xl font-bold text-gold">${idea.title}</h4>
+                            <p class="text-sm font-bold my-2">Difficulty: <span class="font-normal">${idea.difficulty}</span></p>
+                            <p class="text-sm text-theme-subtle mb-3">${idea.description}</p>
+                            <h5 class="font-bold">You'll Need:</h5>
+                            <ul class="list-disc list-inside text-sm text-theme-subtle">${idea.materials.map(m => `<li>${m}</li>`).join('')}</ul>
+                        </div>
+                    `).join('');
+                } catch (error) { 
+                     showError(results, "Sorry, couldn't generate any upcycling ideas.");
+                }
+            }
+
+            async function analyzeWardrobeDna() {
+                if (savedOutfits.length < 3) {
+                    DOMElements.modals.wardrobeDnaContent.innerHTML = `<p>Save at least 3 outfits to analyze your Wardrobe DNA!</p>`;
+                    showModal(DOMElements.modals.wardrobeDna);
+                    return;
+                }
+                showLoader(DOMElements.modals.wardrobeDnaContent, 'Analyzing your unique style...');
+                showModal(DOMElements.modals.wardrobeDna);
+                try {
+                    const systemPrompt = `As a style analyst, analyze the provided list of saved outfit descriptions. Identify the user's core style profile, common color palettes, and recurring keywords. Respond with a JSON object: {"styleProfile": string, "commonColors": [string], "recurringKeywords": [string]}.`;
+                    const outfitsText = savedOutfits.map(o => o.description).join('\n');
+                    const payload = {
+                        contents: [{ role: "user", parts: [{ text: `System instruction: ${systemPrompt}\nOutfits:\n${outfitsText}` }] }],
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: { type: "OBJECT", properties: { "styleProfile": { "type": "STRING" }, "commonColors": { "type": "ARRAY", "items": { "type": "STRING" } }, "recurringKeywords": { "type": "ARRAY", "items": { "type": "STRING" } } }, required: ["styleProfile", "commonColors", "recurringKeywords"] }
+                        }
+                    };
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const result = await callApiWithExponentialBackoff(url, payload);
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!jsonText) throw new Error("Could not analyze wardrobe DNA.");
+                    const dna = JSON.parse(jsonText);
+                    DOMElements.modals.wardrobeDnaContent.innerHTML = `
+                        <div class="space-y-4">
+                            <div><h4 class="font-bold text-lg text-gold">Your Core Style:</h4><p>${dna.styleProfile}</p></div>
+                            <div><h4 class="font-bold text-lg text-gold">Common Colors:</h4><div class="flex flex-wrap gap-2 mt-1">${dna.commonColors.map(c => `<span class="bg-gray-700 text-sm rounded-full px-3 py-1">${c}</span>`).join('')}</div></div>
+                            <div><h4 class="font-bold text-lg text-gold">Recurring Themes:</h4><div class="flex flex-wrap gap-2 mt-1">${dna.recurringKeywords.map(k => `<span class="bg-gray-700 text-sm rounded-full px-3 py-1">${k}</span>`).join('')}</div></div>
+                        </div>`;
+                } catch (error) { showError(DOMElements.modals.wardrobeDnaContent, "Could not complete analysis."); }
+            }
+
+            DOMElements.rateMyFit.upload.addEventListener('change', (e) => handleImageUpload(e, DOMElements.rateMyFit.preview, DOMElements.rateMyFit.placeholder, (base64) => {
+                rateFit(base64);
+            }));
+
+            DOMElements.upcycleStudio.upload.addEventListener('change', (e) => handleImageUpload(e, DOMElements.upcycleStudio.preview, DOMElements.upcycleStudio.placeholder, (base64) => {
+                getUpcycleIdeas(base64);
+            }));
+
+            DOMElements.previousFits.wardrobeDnaButton.addEventListener('click', analyzeWardrobeDna);
+
+            // --- VIRTUAL FITTING ROOM LOGIC ---
+            DOMElements.fittingRoom.upload.addEventListener('change', (e) => handleImageUpload(e, DOMElements.fittingRoom.preview, DOMElements.fittingRoom.placeholder, (base64) => {
+                userTryOnImageBase64 = base64;
+                DOMElements.fittingRoom.step1.classList.add('hidden');
+                DOMElements.fittingRoom.step2.classList.remove('hidden');
+                renderFittingRoomOutfits();
+            }));
+
+            function renderFittingRoomOutfits() {
+                const { savedFitsGrid } = DOMElements.fittingRoom;
+                if (savedOutfits.length === 0) {
+                    savedFitsGrid.innerHTML = `<p class="col-span-full text-center text-theme-subtle">You need to save some outfits first!</p>`;
+                    return;
+                }
+                savedFitsGrid.innerHTML = savedOutfits.slice().reverse().map((outfit, index) => {
+                    const originalIndex = savedOutfits.length - 1 - index;
+                    return `
+                    <div class="bg-theme-secondary text-theme-secondary rounded-xl card-shadow p-3 cursor-pointer" data-action="select-fit" data-index="${originalIndex}">
+                        <div class="w-full h-40 skeleton-theme rounded-lg mb-3 skeleton" data-prompt="${outfit.style_prompt}"></div>
+                        <h4 class="font-bold truncate text-sm">${outfit.title}</h4>
+                    </div>`;
+                }).join('');
+                
+                savedFitsGrid.querySelectorAll('[data-prompt]').forEach(async card => {
+                    const prompt = card.dataset.prompt;
+                    const imageContainer = card.querySelector('.skeleton');
+                    try {
+                        const imageUrl = await generateImage(prompt);
+                        const img = document.createElement('img');
+                        img.src = imageUrl;
+                        img.className = "w-full h-40 object-cover rounded-lg mb-3";
+                        imageContainer.replaceWith(img);
+                    } catch (error) { imageContainer.innerHTML = `<p class="text-xs text-red-500 p-2">Img Fail</p>`; }
+                });
+            }
+
+            DOMElements.fittingRoom.savedFitsGrid.addEventListener('click', async (e) => {
+                const card = e.target.closest('[data-action="select-fit"]');
+                if (!card || !userTryOnImageBase64) return;
+                
+                currentTryOnOutfit = savedOutfits[parseInt(card.dataset.index, 10)];
+                
+                const { step2, finalDisplay, refineControls } = DOMElements.fittingRoom;
+                step2.classList.add('hidden');
+                finalDisplay.classList.remove('hidden');
+                refineControls.classList.remove('hidden');
+                showLoader(finalDisplay, 'Getting you dressed...');
+                
+                try {
+                    const prompt = `Take the person from the user-provided image and dress them in this outfit: "${currentTryOnOutfit.description}". The final image should be a realistic photo of the person in the new clothes, maintaining their original pose and background as much as possible.`;
+                    const payload = {
+                        contents: [{ parts: [ { text: prompt }, { inlineData: { mimeType: "image/jpeg", data: userTryOnImageBase64.split(',')[1] } } ] }],
+                        generationConfig: { responseModalities: ['IMAGE'] }
+                    };
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+                    const result = await callApiWithExponentialBackoff(url, payload);
+                    const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                    if (!base64Data) throw new Error("Virtual try-on failed.");
+                    
+                    currentFittingRoomImageBase64 = `data:image/png;base64,${base64Data}`;
+                    finalDisplay.innerHTML = `<img src="${currentFittingRoomImageBase64}" class="w-full h-full object-contain rounded-lg">`;
+
+                } catch (error) {
+                    showError(finalDisplay, "Sorry, we couldn't perform the virtual try-on. Please try a different photo or outfit.");
+                }
+            });
+
+            DOMElements.fittingRoom.refineButton.addEventListener('click', async () => {
+                const { refineInput, refineButton, finalDisplay } = DOMElements.fittingRoom;
+                const prompt = refineInput.value.trim();
+                if (!prompt || !currentFittingRoomImageBase64) return;
+                
+                refineButton.disabled = true;
+                showLoader(finalDisplay, 'Making adjustments...');
+
+                try {
+                    const fullPrompt = `Based on the previously generated image, apply this change: "${prompt}".`;
+                    const payload = {
+                        contents: [{ parts: [ { text: fullPrompt }, { inlineData: { mimeType: "image/png", data: currentFittingRoomImageBase64.split(',')[1] } } ] }],
+                        generationConfig: { responseModalities: ['IMAGE'] }
+                    };
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+                    const result = await callApiWithExponentialBackoff(url, payload);
+                    const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                    if (!base64Data) throw new Error("Image refinement failed.");
+
+                    currentFittingRoomImageBase64 = `data:image/png;base64,${base64Data}`;
+                    finalDisplay.innerHTML = `<img src="${currentFittingRoomImageBase64}" class="w-full h-full object-contain rounded-lg">`;
+                    refineInput.value = '';
+
+                } catch (error) {
+                    showError(finalDisplay, "Sorry, couldn't refine the image.");
+                } finally {
+                    refineButton.disabled = false;
+                }
+            });
+
+            // --- INITIALIZATION ---
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            applyTheme(savedTheme);
+            handleNavigation();
+
+        });
+    </script>
+</body>
+</html>
+
